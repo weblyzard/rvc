@@ -1,9 +1,9 @@
-import * as rcu from 'rcu';
+import * as rcu from '@weblyzard/rcu';
 import toSource from './utils/tosource';
 import minifycss from './utils/minifycss';
 
-export default function build ( name, source, callback ) {
-	let definition = rcu.parse( source );
+export default function build ( name, source, parseOptions, callback ) {
+  let definition = rcu.parse( source, parseOptions );
 	let dependencies = [ 'require', 'ractive' ];
 	let dependencyArgs = [ 'require', 'Ractive' ];
 	let importMap = [];

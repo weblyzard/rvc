@@ -1,6 +1,6 @@
-import * as rcu from 'rcu';
+import * as rcu from '@weblyzard/rcu';
 
-export default function load ( base, req, source, callback, errback ) {
+export default function load ( base, req, source, parseOptions, callback, errback ) {
 	rcu.make( source, {
 		url: `${base}.html`,
 		loadImport ( name, path, baseUrl, callback ) {
@@ -12,6 +12,7 @@ export default function load ( base, req, source, callback, errback ) {
 		},
 		require ( name ) {
 			return req( name );
-		}
+    },
+    parseOptions
 	}, callback, errback );
 }
