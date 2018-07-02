@@ -35,7 +35,7 @@
   },
   "scripts": {
     "build": "gobble build -f dist",
-    "test": "mocha",
+    "test": "#mocha",
     "pretest": "npm run build",
     "prepublish": "npm test"
   }
