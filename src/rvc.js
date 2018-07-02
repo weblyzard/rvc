@@ -52,10 +52,28 @@ let rvc = amdLoader( 'rvc', 'html', ( name, source, req, callback, errback, conf
 		babel = require.nodeRequire('babel-core');
 		build( name, source, parseOptions, callback, errback );
 	} else {
+		// Modify the less processor – we render the stylesheets later
+		parseOptions.processors['text/less'] = template => template;
+
+		const _callback = function() {
+			callback.apply(this, arguments);
+
+			const style = document.querySelector('style[type="text/css"]:not([rel="stylesheet/less"])');
+
+			if (!style || !style.innerText) return;
+
+			style.setAttribute('rel', 'stylesheet/less');
+
+			less.render(style.innerText, lessConfig, (error, result) => {
+				if (error) return console.error(error);
+				style.innerHTML = result.css;
+			});
+		};
+
 		require(['lessc', 'babel'], (_less, _babel) => {
 			less = _less;
 			babel = _babel;
-			load( name, req, source, parseOptions, callback, errback );
+			load( name, req, source, parseOptions, _callback, errback );
 		});
 	}
 });

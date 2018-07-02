@@ -843,9 +843,7 @@ define(['ractive'], function (Ractive) { 'use strict';
   				} else {
   					var process$1 = parseOptions.processors && parseOptions.processors[attr];
   					if (process$1) {
-  						var templatePart = template.splice(i, 1)[0];
-  						templatePart.f[0] = process$1(templatePart.f[0]);
-  						styles.push(templatePart);
+  						styles.push(process$1(template.splice(i, 1)[0]));
   					}
   				}
   			}
@@ -1463,55 +1461,80 @@ define(['ractive'], function (Ractive) { 'use strict';
   var less = undefined;
   var babel = undefined;
   var lessConfig = {
-  		optimizeCss: true,
-  		strictMath: true,
-  		syncImport: true,
-  		async: false,
-  		fileAsync: false
+  	optimizeCss: true,
+  	strictMath: true,
+  	syncImport: true,
+  	async: false,
+  	fileAsync: false
   };
 
   var babelConfig = {
-  		presets: ['es2015']
+  	presets: ['es2015']
   };
 
   var parseOptions = {
-  		processors: {
-  				'text/less': function (source) {
-  						var css = undefined;
+  	processors: {
+  		'text/less': function (template) {
+  			var css = undefined;
 
-  						less.render(source, lessConfig, function (error, result) {
-  								if (error) console.error(error);
-  								css = result.css;
-  						});
+  			less.render(template.f[0], lessConfig, function (error, result) {
+  				if (error) console.error(error);
+  				css = result.css;
+  			});
 
-  						//if (!css) throw Error('LESS code cannot be compiled synchronously (most likely using @import)');
+  			if (!css) throw Error('LESS code cannot be compiled synchronously (most likely using @import)');
 
-  						console.log('less => css:', css);
-  						return css;
-  				},
+  			//console.log('less => css:', css);
 
-  				'text/babel': function (template) {
-  						template.f[0] = babel.transform(template.f[0], babelConfig).code;
-  						//console.log('es6+ => es5:', template.f[0]);
-  						return template;
-  				}
+  			template.f[0] = css;
+  			return template;
+  		},
+
+  		'text/babel': function (template) {
+  			template.f[0] = babel.transform(template.f[0], babelConfig).code;
+  			//console.log('es6+ => es5:', template.f[0]);
+  			return template;
   		}
+  	}
   };
 
   init(Ractive);
 
   var rvc = loader('rvc', 'html', function (name, source, req, callback, errback, config) {
-  		if (config.isBuild) {
-  				less = require.nodeRequire('less');
-  				babel = require.nodeRequire('babel-core');
-  				build(name, source, parseOptions, callback, errback);
-  		} else {
-  				require(['lessc', 'babel'], function (_less, _babel) {
-  						less = _less;
-  						babel = _babel;
-  						load(name, req, source, parseOptions, callback, errback);
+  	if (config.isBuild) {
+  		less = require.nodeRequire('less');
+  		babel = require.nodeRequire('babel-core');
+  		build(name, source, parseOptions, callback, errback);
+  	} else {
+  		(function () {
+  			// Modify the less processor – we render the stylesheets later
+  			parseOptions.processors['text/less'] = function (template) {
+  				return template;
+  			};
+
+  			var _callback = function () {
+  				callback.apply(this, arguments);
+
+  				var style = document.querySelector('style[type="text/css"]:not([rel="stylesheet/less"])');
+
+  				if (!style || !style.innerText) return;
+  				console.log(style);
+
+  				style.setAttribute('rel', 'stylesheet/less');
+
+  				less.render(style.innerText, lessConfig, function (error, result) {
+  					if (error) return console.error(error);
+  					style.innerHTML = result.css;
   				});
-  		}
+  			};
+
+  			require(['lessc', 'babel'], function (_less, _babel) {
+  				less = _less;
+  				babel = _babel;
+  				load(name, req, source, parseOptions, _callback, errback);
+  			});
+  		})();
+  	}
   });
 
   return rvc;
