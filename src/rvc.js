@@ -20,18 +20,20 @@ const babelConfig = {
 
 const parseOptions = {
   processors: {
-    'text/less': source => {
+    'text/less': template => {
 			let css;
 
-      less.render(source, lessConfig, (error, result) => {
+      less.render(template.f[0], lessConfig, (error, result) => {
 				if (error) console.error(error);
 				css = result.css;
 			});
 
-			//if (!css) throw Error('LESS code cannot be compiled synchronously (most likely using @import)');
+			if (!css) throw Error('LESS code cannot be compiled synchronously (most likely using @import)');
 
-      console.log('less => css:', css);
-      return css;
+      //console.log('less => css:', css);
+
+			template.f[0] = css;
+			return template;
 		},
 
     'text/babel': template => {
