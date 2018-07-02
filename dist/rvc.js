@@ -1518,7 +1518,6 @@ define(['ractive'], function (Ractive) { 'use strict';
   				var style = document.querySelector('style[type="text/css"]:not([rel="stylesheet/less"])');
 
   				if (!style || !style.innerText) return;
-  				console.log(style);
 
   				style.setAttribute('rel', 'stylesheet/less');
 
