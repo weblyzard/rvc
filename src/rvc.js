@@ -58,7 +58,7 @@ let rvc = amdLoader( 'rvc', 'html', ( name, source, req, callback, errback, conf
 		const _callback = function() {
 			callback.apply(this, arguments);
 
-			const style = document.querySelector('style[type="text/css"]:not([rel="stylesheet/less"])');
+			const style = document.querySelector('style[data-ractive-css]:not([rel="stylesheet/less"])');
 
 			if (!style || !style.innerText) return;
 

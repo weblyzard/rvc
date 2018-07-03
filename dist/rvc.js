@@ -831,9 +831,7 @@ define(['ractive'], function (Ractive) { 'use strict';
   					scriptItem = template.splice(i, 1)[0];
   				} else {
   					var process = parseOptions.processors && parseOptions.processors[attr];
-  					if (process) {
-  						scriptItem = process(template.splice(i, 1)[0]);
-  					}
+  					if (process) scriptItem = process(template.splice(i, 1)[0]);
   				}
   			}
 
@@ -842,9 +840,7 @@ define(['ractive'], function (Ractive) { 'use strict';
   					styles.push(template.splice(i, 1)[0]);
   				} else {
   					var process$1 = parseOptions.processors && parseOptions.processors[attr];
-  					if (process$1) {
-  						styles.push(process$1(template.splice(i, 1)[0]));
-  					}
+  					if (process$1) styles.push(process$1(template.splice(i, 1)[0]));
   				}
   			}
   		}
@@ -1515,7 +1511,7 @@ define(['ractive'], function (Ractive) { 'use strict';
   			var _callback = function () {
   				callback.apply(this, arguments);
 
-  				var style = document.querySelector('style[type="text/css"]:not([rel="stylesheet/less"])');
+  				var style = document.querySelector('style[data-ractive-css]:not([rel="stylesheet/less"])');
 
   				if (!style || !style.innerText) return;
 
