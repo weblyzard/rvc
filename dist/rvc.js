@@ -874,6 +874,22 @@ define(['ractive'], function (Ractive) { 'use strict';
   		script: ''
   	};
 
+  	// This is true on build only
+  	if (require.nodeRequire) {
+  		var lessConfig = {
+  			optimizeCss: true,
+  			strictMath: true,
+  			syncImport: true
+  		};
+
+  		var lessc = require.nodeRequire('less');
+
+  		lessc.render(result.css, lessConfig, function (error, _result) {
+  			if (error) return console.error(error); // eslint-disable-line no-console
+  			result.css = _result.css;
+  		});
+  	}
+
   	if (identifier) {
   		result._componentPath = identifier;
   	}
@@ -1013,30 +1029,37 @@ define(['ractive'], function (Ractive) { 'use strict';
 
   	var imports = {};
 
-  	function cssContainsRactiveDelimiters(cssDefinition) {
-  		//TODO: this can use Ractive's default delimiter definitions, and perhaps a single REGEX for match
-  		return cssDefinition && cssDefinition.indexOf('{{') !== -1 && cssDefinition.indexOf('}}') !== -1;
-  	}
-
-  	function determineCss(cssDefinition) {
-  		if (cssContainsRactiveDelimiters(cssDefinition)) {
-  			return function (d) {
-  				return Ractive$1({
-  					template: definition.css,
-  					data: d()
-  				}).fragment.toString(false);
-  			};
-  		} else {
-  			return definition.css;
-  		}
-  	}
+  	// FIXME: re-integrate
+  	/*
+   function cssContainsRactiveDelimiters (cssDefinition) {
+   	//TODO: this can use Ractive's default delimiter definitions, and perhaps a single REGEX for match
+   	return cssDefinition
+              && cssDefinition.indexOf('{{') !== -1
+              && cssDefinition.indexOf('}}') !== -1;
+   }
+   	function determineCss (cssDefinition) {
+   	if (cssContainsRactiveDelimiters(cssDefinition)) {
+   		return function (d) {
+   			return Ractive({
+   				template: definition.css,
+   				data: d()
+   			}).fragment.toString(false);
+   		};
+   	} else {
+   		return definition.css;
+   	}
+   }
+   */
 
   	function createComponent() {
   		var options = {
   			template: definition.template,
   			partials: definition.partials,
   			_componentPath: definition._componentPath,
-  			css: determineCss(definition.css),
+  			css: function (data) {
+  				return data('*');
+  			},
+  			cssData: { '*': definition.css },
   			components: imports
   		};
 
@@ -1064,17 +1087,34 @@ define(['ractive'], function (Ractive) { 'use strict';
   						}
   					}
   				}
-
-  				Component = Ractive$1.extend(options);
   			} catch (err) {
   				errback(err);
   				return;
   			}
+  		}
 
-  			callback(Component);
-  		} else {
-  			Component = Ractive$1.extend(options);
-  			callback(Component);
+  		Component = Ractive$1.extend(options);
+  		callback(Component);
+
+  		if (definition.css) {
+  			var lessConfig = {
+  				optimizeCss: true,
+  				strictMath: true,
+  				syncImport: true
+  			};
+
+  			var compileLess = function (lessc) {
+  				lessc.render(definition.css, lessConfig, function (error, result) {
+  					if (error) return console.error(error); // eslint-disable-line no-console
+  					Component.styleSet('*', result.css);
+  				});
+  			};
+
+  			if (typeof lessc === 'undefined') {
+  				require(['lessc'], compileLess);
+  			} else {
+  				compileLess(lessc); // eslint-disable-line no-undef
+  			}
   		}
   	}
 
@@ -1408,7 +1448,7 @@ define(['ractive'], function (Ractive) { 'use strict';
   // collapsing declarations?
 
   function minifycss(css) {
-  	return css.replace(/^\s+/gm, '');
+  	return css.replace ? css.replace(/^\s+/gm, '') : css;
   }
 
   function build(name, source, parseOptions, callback) {
@@ -1454,15 +1494,7 @@ define(['ractive'], function (Ractive) { 'use strict';
   	callback(builtModule);
   }
 
-  var less = undefined;
   var babel = undefined;
-  var lessConfig = {
-  	optimizeCss: true,
-  	strictMath: true,
-  	syncImport: true,
-  	async: false,
-  	fileAsync: false
-  };
 
   var babelConfig = {
   	presets: ['es2015']
@@ -1470,22 +1502,6 @@ define(['ractive'], function (Ractive) { 'use strict';
 
   var parseOptions = {
   	processors: {
-  		'text/less': function (template) {
-  			var css = undefined;
-
-  			less.render(template.f[0], lessConfig, function (error, result) {
-  				if (error) console.error(error);
-  				css = result.css;
-  			});
-
-  			if (!css) throw Error('LESS code cannot be compiled synchronously (most likely using @import)');
-
-  			//console.log('less => css:', css);
-
-  			template.f[0] = css;
-  			return template;
-  		},
-
   		'text/babel': function (template) {
   			template.f[0] = babel.transform(template.f[0], babelConfig).code;
   			//console.log('es6+ => es5:', template.f[0]);
@@ -1498,37 +1514,13 @@ define(['ractive'], function (Ractive) { 'use strict';
 
   var rvc = loader('rvc', 'html', function (name, source, req, callback, errback, config) {
   	if (config.isBuild) {
-  		less = require.nodeRequire('less');
   		babel = require.nodeRequire('babel-core');
   		build(name, source, parseOptions, callback, errback);
   	} else {
-  		(function () {
-  			// Modify the less processor – we render the stylesheets later
-  			parseOptions.processors['text/less'] = function (template) {
-  				return template;
-  			};
-
-  			var _callback = function () {
-  				callback.apply(this, arguments);
-
-  				var style = document.querySelector('style[data-ractive-css]:not([rel="stylesheet/less"])');
-
-  				if (!style || !style.innerText) return;
-
-  				style.setAttribute('rel', 'stylesheet/less');
-
-  				less.render(style.innerText, lessConfig, function (error, result) {
-  					if (error) return console.error(error);
-  					style.innerHTML = result.css;
-  				});
-  			};
-
-  			require(['lessc', 'babel'], function (_less, _babel) {
-  				less = _less;
-  				babel = _babel;
-  				load(name, req, source, parseOptions, _callback, errback);
-  			});
-  		})();
+  		require(['babel'], function (_babel) {
+  			babel = _babel;
+  			load(name, req, source, parseOptions, callback, errback);
+  		});
   	}
   });
 

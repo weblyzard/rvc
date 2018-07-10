@@ -1,6 +1,6 @@
 {
   "name": "@weblyzard/rvc",
-  "version": "0.6.2-alpha",
+  "version": "0.6.4-alpha",
   "description": "RequireJS plugin to load and optimise Ractive components",
   "main": "dist/rvc.js",
   "repository": {
@@ -18,7 +18,7 @@
   "author": "Rich Harris",
   "license": "MIT",
   "devDependencies": {
-    "@weblyzard/rcu": "^0.12.2-alpha",
+    "@weblyzard/rcu": "^0.12.3-alpha",
     "es6-promise": "^4.2.4",
     "eslint": "^4.16.0",
     "gobble": "^0.12.0",
