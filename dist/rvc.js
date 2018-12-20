@@ -1110,12 +1110,14 @@ define(['ractive'], function (Ractive) { 'use strict';
   				});
   			};
 
-  			if (typeof lessc === 'undefined') {
-  				require(['lessc'], compileLess);
-  			} else {
-  				compileLess(lessc); // eslint-disable-line no-undef
-  			}
-  		}
+			if (typeof less !== 'undefined') {
+				compileLess(less);
+			} else if (typeof lessc !== 'undefined') {
+				compileLess(lessc); // eslint-disable-line no-undef
+			} else {
+				console.warn('Could not find LESS compiler for Ractive components');
+			}
+ 		}
   	}
 
   	// If the definition includes sub-components e.g.
